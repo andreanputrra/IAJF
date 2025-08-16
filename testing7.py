@@ -12,12 +12,10 @@ def get_connection():
     # db_url disimpan di secrets
     db_url = st.secrets["db_url"]  
     return create_engine(db_url)  # engine SQLAlchemy
-
-def setup_database():
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS kas (
+    
+engine = get_connection()
+with engine.connect() as conn:
+    conn.execute(text("CREATE TABLE IF NOT EXISTS kas (CREATE TABLE IF NOT EXISTS kas (
             id TEXT,
             tanggal TEXT,
             deskripsi_pekerjaan TEXT,
@@ -29,11 +27,8 @@ def setup_database():
             keterangan TEXT,
             po_number TEXT,
             invoice_number TEXT,
-            surat_jalan_number TEXT
-        )
-    """)
+            surat_jalan_number TEXT)"))
     conn.commit()
-    conn.close()
 
 setup_database()
 
@@ -793,5 +788,6 @@ elif menu == "Cetak Surat Jalan":
     else:
 
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
+
 
 
