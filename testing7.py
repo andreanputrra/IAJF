@@ -39,12 +39,14 @@ def setup_database():
 
 setup_database()
 
+from sqlalchemy import create_engine
+
 def load_data():
-    conn = get_connection()
-    df = pd.read_sql_query("SELECT * FROM kas", conn)
+    engine = create_engine(st.secrets["db_url"])
+    df = pd.read_sql_query("SELECT * FROM kas", engine)
     df['tanggal'] = pd.to_datetime(df['tanggal'], errors='coerce')
-    conn.close()
     return df
+
 
 def save_data(row):
     conn = get_connection()
@@ -791,4 +793,5 @@ elif menu == "Cetak Surat Jalan":
             }
             print_surat_jalan(surat_jalan_data, items)
     else:
+
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
