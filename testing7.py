@@ -3,7 +3,7 @@ import streamlit as st
 import os
 import psycopg2
 from datetime import datetime
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 
 DB_FILE = "pengeluaran_kas.db"
@@ -793,6 +793,7 @@ elif menu == "Cetak Surat Jalan":
     else:
 
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
+
 
 
 
