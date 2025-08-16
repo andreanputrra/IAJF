@@ -50,15 +50,21 @@ setup_database()
 
 
 def save_data(row):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO kas (id, tanggal, deskripsi_pekerjaan, deskripsi_pengeluaran,
-                         jumlah_barang, unit, harga_per_satuan, total_harga, keterangan,
-                         po_number, invoice_number, surat_jalan_number)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", row)
-    conn.commit()
-    conn.close()
+    engine = get_connection()
+    with engine.connect() as conn:
+        conn.execute(text("""
+            INSERT INTO kas (
+                id, tanggal, deskripsi_pekerjaan, deskripsi_pengeluaran,
+                jumlah_barang, unit, harga_per_satuan, total_harga,
+                keterangan, po_number, invoice_number, surat_jalan_number
+            )
+            VALUES (
+                :id, :tanggal, :deskripsi_pekerjaan, :deskripsi_pengeluaran,
+                :jumlah_barang, :unit, :harga_per_satuan, :total_harga,
+                :keterangan, :po_number, :invoice_number, :surat_jalan_number
+            )
+        """), row)
+        conn.commit()
 
 def delete_data_by_index(index):
     df = load_data()
@@ -796,6 +802,7 @@ elif menu == "Cetak Surat Jalan":
     else:
 
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
+
 
 
 
