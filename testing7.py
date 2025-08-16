@@ -7,12 +7,10 @@ from sqlalchemy import create_engine, text
 
 
 DB_FILE = "pengeluaran_kas.db"
-
+@st.cache_resource
 def get_connection():
-    # db_url disimpan di secrets
-    db_url = st.secrets["db_url"]  
-    return create_engine(db_url)  # engine SQLAlchemy
-
+    db_url = st.secrets["db_url"]
+    return create_engine(db_url)
 
 def setup_database():
     engine = get_connection()
@@ -35,15 +33,21 @@ def setup_database():
         """))
         conn.commit()
 
-setup_database()
-
-
+@st.cache_data
 def load_data():
     engine = get_connection()
     query = "SELECT * FROM kas"
-    df = pd.read_sql_query(query, engine)
+    df = pd.read_sql(query, engine)
     df['tanggal'] = pd.to_datetime(df['tanggal'], errors='coerce')
     return df
+
+# Setup tabel (hanya sekali)
+setup_database()
+
+# Ambil data (cached)
+df = load_data()
+
+st.dataframe(df)
 
 
 def save_data(row):
@@ -793,6 +797,7 @@ elif menu == "Cetak Surat Jalan":
     else:
 
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
+
 
 
 
