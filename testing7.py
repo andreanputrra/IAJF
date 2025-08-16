@@ -8,7 +8,7 @@ DB_FILE = "pengeluaran_kas.db"
 
 def get_connection():
     # db_url disimpan di secrets
-    db_url = st.secrets["postgresql://postgres.fmvclahyaekbujfbkoaq:[YOUR-PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"]  
+    db_url = st.secrets["db_url"]  
     return create_engine(db_url)  # engine SQLAlchemy
 
 def setup_database():
@@ -792,3 +792,4 @@ elif menu == "Cetak Surat Jalan":
     else:
 
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
+
