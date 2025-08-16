@@ -136,35 +136,37 @@ def print_data(df_to_print, no_voucher, nama_pengeluaran, total_pengeluaran):
     html_content = df_to_print.to_html(index=False)
 
     full_html_page = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Voucher Pengeluaran</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            h1, h2, h3 {{ text-align: center; }}
-            table {{
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 20px;
-            }}
-            th, td {{
-                border: 1px solid #ddd;
-                padding: 8px;
-                text-align: left;
-            }}
-            th {{ background-color: #f2f2f2; }}
-        </style>
-    </head>
-    <body>
-        <h1>Voucher Pengeluaran</h1>
-        <h3>No Voucher: {no_voucher}</h3>
-        <h3>Nama Pengeluaran: {nama_pengeluaran}</h3>
-        <h3>Total Pengeluaran: {total_pengeluaran_rupiah}</h3>
-        {html_content}
-    </body>
-    </html>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Voucher Pengeluaran</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        h1, h2, h3 {{ text-align: center; }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }}
+        th, td {{
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }}
+        th {{ background-color: #f2f2f2; }}
+    </style>
+</head>
+<body>
+    <h1>Voucher Pengeluaran</h1>
+    <h3>No Voucher: {no_voucher}</h3>
+    <h3>Nama Pengeluaran: {nama_pengeluaran}</h3>
+    <h3>Total Pengeluaran: {total_pengeluaran_rupiah}</h3>
+    {html_content}
+</body>
+</html>
+"""
+
     """
 
     html_path = "pengeluaran_kas_print.html"
@@ -815,6 +817,7 @@ elif menu == "Cetak Surat Jalan":
     else:
 
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
+
 
 
 
