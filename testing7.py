@@ -51,20 +51,30 @@ setup_database()
 
 def save_data(row):
     engine = get_connection()
-    with engine.connect() as conn:
-        conn.execute(text("""
+    columns = [
+        "id", "tanggal", "deskripsi_pekerjaan", "deskripsi_pengeluaran",
+        "jumlah_barang", "unit", "harga_per_satuan", "total_harga",
+        "keterangan", "po_number", "invoice_number", "surat_jalan_number"
+    ]
+    
+    # Kalau row masih bentuk list/tuple → ubah jadi dict
+    if isinstance(row, (list, tuple)):
+        row = dict(zip(columns, row))
+    
+    # Kalau tanggal dalam format datetime, ubah jadi string (biar aman di SQL)
+    if hasattr(row.get("tanggal"), "strftime"):
+        row["tanggal"] = row["tanggal"].strftime("%Y-%m-%d")
+
+    with engine.begin() as conn:  # begin() otomatis commit
+        conn.execute(text(f"""
             INSERT INTO kas (
-                id, tanggal, deskripsi_pekerjaan, deskripsi_pengeluaran,
-                jumlah_barang, unit, harga_per_satuan, total_harga,
-                keterangan, po_number, invoice_number, surat_jalan_number
+                {', '.join(columns)}
             )
             VALUES (
-                :id, :tanggal, :deskripsi_pekerjaan, :deskripsi_pengeluaran,
-                :jumlah_barang, :unit, :harga_per_satuan, :total_harga,
-                :keterangan, :po_number, :invoice_number, :surat_jalan_number
+                {', '.join(f':{col}' for col in columns)}
             )
         """), row)
-        conn.commit()
+
 
 def delete_data_by_index(index):
     df = load_data()
@@ -802,6 +812,7 @@ elif menu == "Cetak Surat Jalan":
     else:
 
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
+
 
 
 
