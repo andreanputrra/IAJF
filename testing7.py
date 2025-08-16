@@ -44,10 +44,9 @@ def load_data():
 # Setup tabel (hanya sekali)
 setup_database()
 
-# Ambil data (cached)
-df = load_data()
 
-st.dataframe(df)
+
+
 
 
 def save_data(row):
@@ -797,6 +796,7 @@ elif menu == "Cetak Surat Jalan":
     else:
 
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
+
 
 
 
