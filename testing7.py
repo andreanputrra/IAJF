@@ -86,23 +86,26 @@ def delete_data_by_index(index):
         conn.commit()
         conn.close()
 
-def update_data_by_id(data):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE kas SET
-            tanggal = %s,
-            deskripsi_pekerjaan = %s,
-            deskripsi_pengeluaran = %s,
-            jumlah_barang = %s,
-            unit = %s,
-            harga_per_satuan = %s,
-            total_harga = %s,
-            keterangan = %s,
-            po_number = %s,
-            invoice_number = %s,
-            surat_jalan_number = %s
-        WHERE id = %s
+
+def update_data_by_id(row):
+    engine = get_connection()
+    with engine.begin() as conn:  # Auto commit & close
+        conn.execute(text("""
+            UPDATE kas
+            SET 
+                tanggal = :tanggal,
+                deskripsi_pekerjaan = :deskripsi_pekerjaan,
+                deskripsi_pengeluaran = :deskripsi_pengeluaran,
+                jumlah_barang = :jumlah_barang,
+                unit = :unit,
+                harga_per_satuan = :harga_per_satuan,
+                total_harga = :total_harga,
+                keterangan = :keterangan,
+                po_number = :po_number,
+                invoice_number = :invoice_number,
+                surat_jalan_number = :surat_jalan_number
+            WHERE id = :id
+        """), row)d = %s
     """, data)
     conn.commit()
     conn.close()
@@ -812,6 +815,7 @@ elif menu == "Cetak Surat Jalan":
     else:
 
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
+
 
 
 
