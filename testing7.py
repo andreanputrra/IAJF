@@ -142,7 +142,7 @@ def print_data(df_to_print, no_voucher, nama_pengeluaran, total_pengeluaran):
         <meta charset="UTF-8">
         <title>Voucher Pengeluaran</title>
         <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; }}
+            body { font-family: Arial, sans-serif; margin: 20px; }
             h1, h2, h3 {{ text-align: center; }}
             table {{
                 width: 100%;
@@ -815,6 +815,7 @@ elif menu == "Cetak Surat Jalan":
     else:
 
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
+
 
 
 
