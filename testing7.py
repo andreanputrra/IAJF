@@ -9,7 +9,10 @@ from sqlalchemy import create_engine, text
 # Masukkan koneksi Supabase di st.secrets
 # Contoh di .streamlit/secrets.toml:
 # DB_URL = "postgresql://username:password@host:5432/postgres"
-
+DB_URL = (
+    "postgresql+psycopg2://postgres.fmvclahyaekbujfbkoaq:"
+    "IsatechArthaJaya@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
+)
 @st.cache_resource
 def get_engine():
     """Buat engine SQLAlchemy dengan connection pooling."""
@@ -799,4 +802,5 @@ elif menu == "Cetak Surat Jalan":
             print_surat_jalan(surat_jalan_data, items)
     else:
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
+
 
