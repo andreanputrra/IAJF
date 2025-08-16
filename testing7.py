@@ -3,17 +3,13 @@ import streamlit as st
 import os
 import psycopg2
 from datetime import datetime
+from sqlalchemy import create_engine
 
 DB_FILE = "pengeluaran_kas.db"
 
-def get_connection():
-    return psycopg2.connect(
-        host="aws-1-ap-southeast-1.pooler.supabase.com",
-        database="postgres",
-        user="postgres.fmvclahyaekbujfbkoaq",
-        password="IsatechArthaJaya",
-        port=6543
-    )
+def get_engine():
+    db_url = st.secrets["DB_URL"]  
+    return create_engine(db_url)
 
 def setup_database():
     conn = get_connection()
@@ -40,10 +36,10 @@ def setup_database():
 setup_database()
 
 def load_data():
-    conn = get_connection()
-    df = pd.read_sql_query("SELECT * FROM kas", conn)
+    engine = get_engine()
+    query = "SELECT * FROM kas"
+    df = pd.read_sql_query(query, engine)
     df['tanggal'] = pd.to_datetime(df['tanggal'], errors='coerce')
-    conn.close()
     return df
 
 def save_data(row):
@@ -792,3 +788,4 @@ elif menu == "Cetak Surat Jalan":
             print_surat_jalan(surat_jalan_data, items)
     else:
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
+
