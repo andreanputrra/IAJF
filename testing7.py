@@ -3,100 +3,90 @@ import streamlit as st
 import os
 import psycopg2
 from datetime import datetime
-from sqlalchemy import create_engine, text
 
-# ======== KONFIGURASI DATABASE ========
-# Masukkan koneksi Supabase di st.secrets
-# Contoh di .streamlit/secrets.toml:
-# DB_URL = "postgresql://username:password@host:5432/postgres"
-DB_URL = (
-    "postgresql+psycopg2://postgres.fmvclahyaekbujfbkoaq:"
-    "IsatechArthaJaya@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
-)
-@st.cache_resource
-def get_engine():
-    """Buat engine SQLAlchemy dengan connection pooling."""
-    db_url = st.secrets["DB_URL"]
-    return create_engine(db_url, pool_pre_ping=True)
+DB_FILE = "pengeluaran_kas.db"
 
-# ======== SETUP DATABASE ========
+def get_connection():
+    return psycopg2.connect(
+        host="aws-1-ap-southeast-1.pooler.supabase.com",
+        database="postgres",
+        user="postgres.fmvclahyaekbujfbkoaq",
+        password="IsatechArthaJaya",
+        port=6543
+    )
+
 def setup_database():
-    engine = get_engine()
-    create_table_sql = """
-    CREATE TABLE IF NOT EXISTS kas (
-        id TEXT PRIMARY KEY,
-        tanggal DATE,
-        deskripsi_pekerjaan TEXT,
-        deskripsi_pengeluaran TEXT,
-        jumlah_barang INTEGER,
-        unit TEXT,
-        harga_per_satuan NUMERIC,
-        total_harga NUMERIC,
-        keterangan TEXT,
-        po_number TEXT,
-        invoice_number TEXT,
-        surat_jalan_number TEXT
-    );
-    """
-    with engine.begin() as conn:
-        conn.execute(text(create_table_sql))
-
-# ======== LOAD DATA ========
-@st.cache_data(ttl=60)
-def load_data():
-    """Ambil semua data dari tabel kas."""
-    engine = get_engine()
-    query = "SELECT * FROM kas ORDER BY tanggal DESC"
-    df = pd.read_sql(query, engine)
-    return df
-
-# ======== SIMPAN DATA ========
-def save_data(row: dict):
-    """Simpan data baru ke tabel kas."""
-    engine = get_engine()
-    insert_sql = text("""
-        INSERT INTO kas (
-            id, tanggal, deskripsi_pekerjaan, deskripsi_pengeluaran,
-            jumlah_barang, unit, harga_per_satuan, total_harga, 
-            keterangan, po_number, invoice_number, surat_jalan_number
-        ) VALUES (
-            :id, :tanggal, :deskripsi_pekerjaan, :deskripsi_pengeluaran,
-            :jumlah_barang, :unit, :harga_per_satuan, :total_harga,
-            :keterangan, :po_number, :invoice_number, :surat_jalan_number
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS kas (
+            id TEXT,
+            tanggal TEXT,
+            deskripsi_pekerjaan TEXT,
+            deskripsi_pengeluaran TEXT,
+            jumlah_barang INTEGER,
+            unit TEXT,
+            harga_per_satuan INTEGER,
+            total_harga INTEGER,
+            keterangan TEXT,
+            po_number TEXT,
+            invoice_number TEXT,
+            surat_jalan_number TEXT
         )
     """)
-    with engine.begin() as conn:
-        conn.execute(insert_sql, row)
+    conn.commit()
+    conn.close()
 
-# ======== UPDATE DATA ========
-def update_data_by_id(row: dict):
-    """Update data berdasarkan ID."""
-    engine = get_engine()
-    update_sql = text("""
+setup_database()
+
+def load_data():
+    conn = get_connection()
+    df = pd.read_sql_query("SELECT * FROM kas", conn)
+    df['tanggal'] = pd.to_datetime(df['tanggal'], errors='coerce')
+    conn.close()
+    return df
+
+def save_data(row):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO kas (id, tanggal, deskripsi_pekerjaan, deskripsi_pengeluaran,
+                         jumlah_barang, unit, harga_per_satuan, total_harga, keterangan,
+                         po_number, invoice_number, surat_jalan_number)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", row)
+    conn.commit()
+    conn.close()
+
+def delete_data_by_index(index):
+    df = load_data()
+    if index < len(df):
+        id_to_delete = df.iloc[index]['id']
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM kas WHERE id = %s", (id_to_delete,))
+        conn.commit()
+        conn.close()
+
+def update_data_by_id(data):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
         UPDATE kas SET
-            tanggal = :tanggal,
-            deskripsi_pekerjaan = :deskripsi_pekerjaan,
-            deskripsi_pengeluaran = :deskripsi_pengeluaran,
-            jumlah_barang = :jumlah_barang,
-            unit = :unit,
-            harga_per_satuan = :harga_per_satuan,
-            total_harga = :total_harga,
-            keterangan = :keterangan,
-            po_number = :po_number,
-            invoice_number = :invoice_number,
-            surat_jalan_number = :surat_jalan_number
-        WHERE id = :id
-    """)
-    with engine.begin() as conn:
-        conn.execute(update_sql, row)
-
-# ======== HAPUS DATA ========
-def delete_data_by_id(id_value: str):
-    """Hapus data berdasarkan ID."""
-    engine = get_engine()
-    delete_sql = text("DELETE FROM kas WHERE id = :id")
-    with engine.begin() as conn:
-        conn.execute(delete_sql, {"id": id_value})
+            tanggal = %s,
+            deskripsi_pekerjaan = %s,
+            deskripsi_pengeluaran = %s,
+            jumlah_barang = %s,
+            unit = %s,
+            harga_per_satuan = %s,
+            total_harga = %s,
+            keterangan = %s,
+            po_number = %s,
+            invoice_number = %s,
+            surat_jalan_number = %s
+        WHERE id = %s
+    """, data)
+    conn.commit()
+    conn.close()
 
 def generate_id_transaksi(kode_pelanggan, tanggal, df):
     prefix = kode_pelanggan.upper() if kode_pelanggan else "X1"
@@ -802,5 +792,3 @@ elif menu == "Cetak Surat Jalan":
             print_surat_jalan(surat_jalan_data, items)
     else:
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
-
-
