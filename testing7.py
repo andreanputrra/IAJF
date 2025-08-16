@@ -3,78 +3,59 @@ import streamlit as st
 import os
 import psycopg2
 from datetime import datetime
-from sqlalchemy import create_engine, text
-
 
 DB_FILE = "pengeluaran_kas.db"
-@st.cache_resource
+
 def get_connection():
-    db_url = st.secrets["db_url"]
-    return create_engine(db_url)
+    return psycopg2.connect(
+        host="aws-1-ap-southeast-1.pooler.supabase.com",
+        database="postgres",
+        user="postgres.fmvclahyaekbujfbkoaq",
+        password="IsatechArthaJaya",
+        port=6543
+    )
 
 def setup_database():
-    engine = get_connection()
-    with engine.connect() as conn:
-        conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS kas (
-                id TEXT,
-                tanggal TEXT,
-                deskripsi_pekerjaan TEXT,
-                deskripsi_pengeluaran TEXT,
-                jumlah_barang INTEGER,
-                unit TEXT,
-                harga_per_satuan INTEGER,
-                total_harga INTEGER,
-                keterangan TEXT,
-                po_number TEXT,
-                invoice_number TEXT,
-                surat_jalan_number TEXT
-            )
-        """))
-        conn.commit()
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS kas (
+            id TEXT,
+            tanggal TEXT,
+            deskripsi_pekerjaan TEXT,
+            deskripsi_pengeluaran TEXT,
+            jumlah_barang INTEGER,
+            unit TEXT,
+            harga_per_satuan INTEGER,
+            total_harga INTEGER,
+            keterangan TEXT,
+            po_number TEXT,
+            invoice_number TEXT,
+            surat_jalan_number TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
 
-@st.cache_data
-def load_data():
-    engine = get_connection()
-    query = "SELECT * FROM kas"
-    df = pd.read_sql(query, engine)
-    df['tanggal'] = pd.to_datetime(df['tanggal'], errors='coerce')
-    return df
-
-# Setup tabel (hanya sekali)
 setup_database()
 
-
-
-
-
+def load_data():
+    conn = get_connection()
+    df = pd.read_sql_query("SELECT * FROM kas", conn)
+    df['tanggal'] = pd.to_datetime(df['tanggal'], errors='coerce')
+    conn.close()
+    return df
 
 def save_data(row):
-    engine = get_connection()
-    columns = [
-        "id", "tanggal", "deskripsi_pekerjaan", "deskripsi_pengeluaran",
-        "jumlah_barang", "unit", "harga_per_satuan", "total_harga",
-        "keterangan", "po_number", "invoice_number", "surat_jalan_number"
-    ]
-    
-    # Kalau row masih bentuk list/tuple → ubah jadi dict
-    if isinstance(row, (list, tuple)):
-        row = dict(zip(columns, row))
-    
-    # Kalau tanggal dalam format datetime, ubah jadi string (biar aman di SQL)
-    if hasattr(row.get("tanggal"), "strftime"):
-        row["tanggal"] = row["tanggal"].strftime("%Y-%m-%d")
-
-    with engine.begin() as conn:  # begin() otomatis commit
-        conn.execute(text(f"""
-            INSERT INTO kas (
-                {', '.join(columns)}
-            )
-            VALUES (
-                {', '.join(f':{col}' for col in columns)}
-            )
-        """), row)
-
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO kas (id, tanggal, deskripsi_pekerjaan, deskripsi_pengeluaran,
+                         jumlah_barang, unit, harga_per_satuan, total_harga, keterangan,
+                         po_number, invoice_number, surat_jalan_number)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", row)
+    conn.commit()
+    conn.close()
 
 def delete_data_by_index(index):
     df = load_data()
@@ -86,26 +67,23 @@ def delete_data_by_index(index):
         conn.commit()
         conn.close()
 
-
-def update_data_by_id(row):
-    engine = get_connection()
-    with engine.begin() as conn:  # Auto commit & close
-        conn.execute(text("""
-            UPDATE kas
-            SET 
-                tanggal = :tanggal,
-                deskripsi_pekerjaan = :deskripsi_pekerjaan,
-                deskripsi_pengeluaran = :deskripsi_pengeluaran,
-                jumlah_barang = :jumlah_barang,
-                unit = :unit,
-                harga_per_satuan = :harga_per_satuan,
-                total_harga = :total_harga,
-                keterangan = :keterangan,
-                po_number = :po_number,
-                invoice_number = :invoice_number,
-                surat_jalan_number = :surat_jalan_number
-            WHERE id = :id
-        """), row)d = %s
+def update_data_by_id(data):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE kas SET
+            tanggal = %s,
+            deskripsi_pekerjaan = %s,
+            deskripsi_pengeluaran = %s,
+            jumlah_barang = %s,
+            unit = %s,
+            harga_per_satuan = %s,
+            total_harga = %s,
+            keterangan = %s,
+            po_number = %s,
+            invoice_number = %s,
+            surat_jalan_number = %s
+        WHERE id = %s
     """, data)
     conn.commit()
     conn.close()
@@ -136,37 +114,35 @@ def print_data(df_to_print, no_voucher, nama_pengeluaran, total_pengeluaran):
     html_content = df_to_print.to_html(index=False)
 
     full_html_page = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Voucher Pengeluaran</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 20px; }}
-        h1, h2, h3 {{ text-align: center; }}
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }}
-        th, td {{
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }}
-        th {{ background-color: #f2f2f2; }}
-    </style>
-</head>
-<body>
-    <h1>Voucher Pengeluaran</h1>
-    <h3>No Voucher: {no_voucher}</h3>
-    <h3>Nama Pengeluaran: {nama_pengeluaran}</h3>
-    <h3>Total Pengeluaran: {total_pengeluaran_rupiah}</h3>
-    {html_content}
-</body>
-</html>
-"""
-
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Voucher Pengeluaran</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; }}
+            h1, h2, h3 {{ text-align: center; }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+            }}
+            th, td {{
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }}
+            th {{ background-color: #f2f2f2; }}
+        </style>
+    </head>
+    <body>
+        <h1>Voucher Pengeluaran</h1>
+        <h3>No Voucher: {no_voucher}</h3>
+        <h3>Nama Pengeluaran: {nama_pengeluaran}</h3>
+        <h3>Total Pengeluaran: {total_pengeluaran_rupiah}</h3>
+        {html_content}
+    </body>
+    </html>
     """
 
     html_path = "pengeluaran_kas_print.html"
@@ -815,19 +791,4 @@ elif menu == "Cetak Surat Jalan":
             }
             print_surat_jalan(surat_jalan_data, items)
     else:
-
         st.info("Belum ada data transaksi untuk dibuat surat jalan.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
