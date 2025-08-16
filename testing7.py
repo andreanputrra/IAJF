@@ -7,13 +7,9 @@ from datetime import datetime
 DB_FILE = "pengeluaran_kas.db"
 
 def get_connection():
-    return psycopg2.connect(
-        host="aws-1-ap-southeast-1.pooler.supabase.com",
-        database="postgres",
-        user="postgres.fmvclahyaekbujfbkoaq",
-        password="IsatechArthaJaya",
-        port=6543
-    )
+    # db_url disimpan di secrets
+    db_url = st.secrets["postgresql://postgres.fmvclahyaekbujfbkoaq:[YOUR-PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"]  
+    return create_engine(db_url)  # engine SQLAlchemy
 
 def setup_database():
     conn = get_connection()
@@ -42,8 +38,9 @@ setup_database()
 from sqlalchemy import create_engine
 
 def load_data():
-    engine = create_engine(st.secrets["db_url"])
-    df = pd.read_sql_query("SELECT * FROM kas", engine)
+    engine = get_connection()
+    query = "SELECT * FROM kas"
+    df = pd.read_sql_query(query, engine)
     df['tanggal'] = pd.to_datetime(df['tanggal'], errors='coerce')
     return df
 
